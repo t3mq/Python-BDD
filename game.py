@@ -1,139 +1,167 @@
 from utils import save_player, select_player, open_box
-from db_init import collection_monstres, collection_player, collection_items
+from db_init import collection_items, collection_monstres, collection_player
 from colorama import Fore, Style
+
 import random
 import time
 
-# Cette fonction va faire appel à d'autre fonction qui vont permettre de lancer le jeu
 def start_game():
     player = save_player()
-    equipe = select_player(player)
-    start(player, equipe)
+    squad = select_player(player)
+    start(player, squad)
 
-# On liste la collection des monstres pour les recupérer
-# On lance le jeu à la vague 1
 def start(player, squad):
     monsters = list(collection_monstres.find())
     vague = 1
-    ennemis(squad, vague, player, monsters)
+    fighter_index = 0
 
-# Ici on gère les différentes vagues du jeu en mettant aussi une condition qui obligue d'avoir des montres de moins de 80 pv duant toutes les vagues en dessosu de la 5eme
-def ennemis(squad, vague, player, monsters):
-    while True: 
-        print(f"\n----VAGUE---- {vague}")
+    while True:
+        print(f"\n----VAGUE {vague}----")
+        enemies = choisir_monstres(monsters, vague)
 
-        if vague < 5:
-            monstres_dispo = [m for m in monsters if m["pv"] <= 80]
-        else: 
-            monstres_dispo = monsters
-
-        ennemis = random.sample(monstres_dispo, min(3, len(monstres_dispo)))
-        
-        for ennemi in ennemis:
-            print(f"\n Un {ennemi['nom']} apparaît ! (PV : {ennemi['pv']})")
-            time.sleep(1)
-
-            ennemi_vaincu = False
-            while not ennemi_vaincu:
-                squad_life = [p for p in squad if p['pv'] > 0]
-
-                if not squad_life:
-                    print(Fore.RED + f"\n Votre équipe a été vaincu à la vague {vague} !" + Style.RESET_ALL)
-                    collection_player.update_one({"nom": player}, {"$set" : {"score": vague}})
-                    print(Fore.YELLOW + f"Score enregistré : {vague} vagues survécues." + Style.RESET_ALL)
-                    return
-
-                combattant = squad_life[0]
-                print(f"{combattant['nom']} part au combat!")
-                time.sleep(0.5)
-
-                resultat = combat(combattant, ennemi, player)
-                if resultat == "defaite":
-                    combattant['pv'] = 0
-                    print(Fore.RED + f"{combattant['nom']} a été vaincu par {ennemi['nom']}" + Style.RESET_ALL)
-                    items = list(collection_items.find())
-                    item = open_box(items)
-                    if item:
-                        print(Fore.YELLOW + "Le monstre as obtenu :", item['nom'] + Style.RESET_ALL)
-                        apply_effect(item, ennemi)
-                else:
-                    print(Fore.GREEN + f"{combattant['nom']} a vaincu {ennemi['nom']}" + Style.RESET_ALL)
-                    items = list(collection_items.find())
-                    item = open_box(items)
-                    if item:
-                        print(Fore.YELLOW + "Tu as obtenu :", item['nom'] + Style.RESET_ALL)
-                        apply_effect(item, combattant)
-                    ennemi_vaincu = True
-                time.sleep(1)
+        for enemy in enemies:
+            afficher_monstre(enemy)
+            victoire, fighter_index = tour_combat(squad, enemy, player, fighter_index)
+            if not victoire:
+                fin_partie(player, vague)
+                return
 
         vague += 1
 
-# Ici on gère la partie combat avec différente condition / boucle pour repéter les actions
-def combat(perso, monters, player):
-    pv_perso = perso['pv']
-    pv_monters = monters['pv']
+def choisir_monstres(monsters, vague):
+    if vague < 5:
+        dispo = [m for m in monsters if m["pv"] <= 80]
+    else:
+        dispo = monsters
 
-    while pv_perso > 0 and pv_monters > 0:
-        degats_perso = max(0, perso['atk'] - monters['def'])
-        pv_monters -= degats_perso
-        print(f"{perso['nom']} inflige {degats_perso} dégâts ! (PV monstre : {max(0, pv_monters)})")
-        time.sleep(0.4)
+    return [dict(m) for m in random.sample(dispo, min(3, len(dispo)))]
 
-        if pv_monters <= 0:
-            perso['pv'] = pv_perso
-            monters['pv'] = 0
-            save_pv(player, perso) # Save des PV en db 
-            return "victoire"
-        
-        degats_monster = max(0, monters['atk'] - perso['def'])
-        pv_perso -= degats_monster
-        print(f"{monters['nom']} inflige {degats_monster} dégâts ! (PV {perso['nom']} : {max(0, pv_perso)})")
-        time.sleep(0.4)
+def afficher_monstre(enemy):
+    print(f"\nUn {enemy['nom']} apparaît ! (PV : {enemy['pv']})")
+    time.sleep(1)
 
-    perso['pv'] = max(0, pv_perso)
-    monters['pv'] = max(0, pv_monters)
-    save_pv(player, perso)
-    return "victoire" if pv_perso > 0 else "defaite"
+def tour_combat(squad, enemy, player, start_index=0):
+    n = len(squad)
+    current = start_index
 
-# Fonction qui permet de save en db les pv du joueur
-def save_pv(player, perso):
+    for _ in range(n):
+        fighter = squad[current % n]
+        next_index = (current + 1) % n
+        current += 1
+
+        if fighter["pv"] <= 0:
+            continue
+
+        print(f"{fighter['nom']} part au combat !")
+        result = combat(fighter, enemy, player)
+
+        if result == "defaite":
+            fighter["pv"] = 0
+            print(Fore.RED + f"{fighter['nom']} est vaincu !" + Style.RESET_ALL)
+            drop_item(fighter)
+        else:
+            print(Fore.GREEN + f"{fighter['nom']} gagne !" + Style.RESET_ALL)
+            drop_item(fighter)
+            return True, current % n
+
+    return False, next_index
+
+
+def fin_partie(player, vague):
+    print(Fore.RED + f"\nVotre équipe a perdu à la vague {vague}" + Style.RESET_ALL)
+
     collection_player.update_one(
-        {"nom": player, "equipe._id": perso['_id']},
-        {"$set": {"equipe.$.pv" : perso['pv']}}
+        {"nom": player},
+        {"$set": {"score": vague}}
     )
 
-# Cette fonction va permettre de trouver l'effet d'un item que le combattant ou le monstre récupère
+    print(Fore.YELLOW + f"Score enregistré : {vague}" + Style.RESET_ALL)
+
+def drop_item(perso):
+    items = list(collection_items.find())
+    item = open_box(items)
+
+    if item:
+        print(Fore.YELLOW + f"Objet obtenu : {item['nom']}" + Style.RESET_ALL)
+        apply_effect(item, perso)
+
+def combat(perso, monster, player):
+    pv_perso = perso["pv"]
+    pv_monster = monster["pv"]
+
+    while pv_perso > 0 and pv_monster > 0:
+        degats = max(0, perso['atk'] - monster['def'])
+        pv_monster -= degats
+        print(f"{perso['nom']} inflige {degats} dégâts")
+        time.sleep(0.4)
+
+        if pv_monster <= 0:
+            perso["pv"] = pv_perso
+            monster["pv"] = 0
+            save_pv(player, perso)
+            return "victoire"
+
+        degats = max(0, monster["atk"] - perso["def"])
+        pv_perso -= degats
+        print(f"{monster['nom']} inflige {degats} dégâts !")
+        time.sleep(0.4)
+
+    perso["pv"] = max(0, pv_perso)
+    save_pv(player, perso)
+
+    return "victoire" if pv_perso > 0 else "defaite"
+
+def save_pv(player, perso):
+    collection_player.update_one(
+        {"nom": player, "equipe._id": perso["_id"]},
+        {"$set": {"equipe.$.pv" : perso["pv"]}}
+    )
+
 def apply_effect(item, perso):
     nom = item["nom"].lower()
     effet = item["effets"]
 
     if "potion" in nom or "elexir" in nom:
-        perso["pv"] += effet
-        print(f"--- {perso['nom']} récupère {effet} PV ! (PV : {perso['pv']}) ---")
+        heal(perso, effet)
     elif "épée" in nom:
-        perso["atk"] += effet
-        print(f"--- {perso['nom']} gagne {effet} ATK supplémentaire (ATK : {perso['atk']}) ---")
+        bonus_atk(perso, effet)
     elif "bouclier" in nom:
-        perso["def"] += effet
-        print(f"--- {perso['nom']} gagne {effet} DEF supplémentaire (DEF : {perso['def']}) ---")
+        bonus_def(perso, effet)
     elif "anneau" in nom or "amulette" in nom:
-        perso["pv"] += effet
-        perso["atk"] += effet // 2
-        print(f"--- {perso['nom']} gagne {effet} PV et {effet // 2} ATK ! ---")
-    elif "parchemin" in nom or "bombe" in nom:
-        perso["atk"] += effet
-        print(f"--- L'objet inflige {effet} dégâts bonus au prochain combat ---")
-    elif "maudite" in nom.lower() or "piégé" in nom.lower():
-        perso["pv"] += effet
-        print(f"Mauvais objet ! {perso['nom']} perd {-effet} PV")
+        bonus_mixte(perso, effet)
+    elif "parchemin" in nom or  "bombe" in nom:
+        bonus_atk(perso, effet)
+    elif "maudite" in nom or "piégé" in nom:
+        malus_pv(perso, effet)
+    elif "trèfle" in nom:
+        bonus_chance(perso, effet)
+    elif nom == "rien":
+        print("La boite est vide...")
 
-    elif "trèfle" in nom.lower():
-        perso["atk"] += 20
-        perso["def"] += 20
-        perso["pv"] += effet
-        print("Chance incroyable ! Bonus massif !")
+def heal(perso, effet):
+    perso["pv"] += effet
+    print(f"{perso['nom']} récupère {effet}")
 
-    elif nom == "Rien":
-        print("La boîte est vide...")
-    else:
-        print("Objet étrange... rien ne se passe")
+def bonus_atk(perso, effet):
+    perso["atk"] += effet
+    print(f"{perso['nom']} gagne {effet} ATK")
+
+def bonus_def(perso, effet):
+    perso["def"] += effet
+    print(f"{perso['nom']} gagne {effet} DEF")
+
+def bonus_mixte(perso, effet):
+    perso["pv"] += effet
+    perso["atk"] += effet // 2
+    print(f"{perso['nom']} gagne {effet} PV et {effet//2} ATK")
+
+def malus_pv(perso, effet):
+    perso["pv"] += effet
+    print(f"Mauvais objet ! {perso['nom']} perd {-effet} PV")
+
+
+def bonus_chance(perso, effet):
+    perso["atk"] += 20
+    perso["def"] += 20
+    perso["pv"] += effet
+    print("Chance incroyable ! Bonus massif !")
