@@ -4,19 +4,23 @@ from colorama import Fore, Style
 import random
 import time
 
+# Cette fonction va faire appel à d'autre fonction qui vont permettre de lancer le jeu
 def start_game():
     player = save_player()
     equipe = select_player(player)
     start(player, equipe)
 
+# On liste la collection des monstres pour les recupérer
+# On lance le jeu à la vague 1
 def start(player, squad):
     monsters = list(collection_monstres.find())
     vague = 1
     ennemis(squad, vague, player, monsters)
 
+# Ici on gère les différentes vagues du jeu en mettant aussi une condition qui obligue d'avoir des montres de moins de 80 pv duant toutes les vagues en dessosu de la 5eme
 def ennemis(squad, vague, player, monsters):
     while True: 
-        print(f"\nVAGUE {vague}")
+        print(f"\n----VAGUE---- {vague}")
 
         if vague < 5:
             monstres_dispo = [m for m in monsters if m["pv"] <= 80]
@@ -64,6 +68,7 @@ def ennemis(squad, vague, player, monsters):
 
         vague += 1
 
+# Ici on gère la partie combat avec différente condition / boucle pour repéter les actions
 def combat(perso, monters, player):
     pv_perso = perso['pv']
     pv_monters = monters['pv']
@@ -77,7 +82,7 @@ def combat(perso, monters, player):
         if pv_monters <= 0:
             perso['pv'] = pv_perso
             monters['pv'] = 0
-            save_pv(player, perso)
+            save_pv(player, perso) # Save des PV en db 
             return "victoire"
         
         degats_monster = max(0, monters['atk'] - perso['def'])
@@ -90,12 +95,14 @@ def combat(perso, monters, player):
     save_pv(player, perso)
     return "victoire" if pv_perso > 0 else "defaite"
 
+# Fonction qui permet de save en db les pv du joueur
 def save_pv(player, perso):
     collection_player.update_one(
         {"nom": player, "equipe._id": perso['_id']},
         {"$set": {"equipe.$.pv" : perso['pv']}}
     )
 
+# Cette fonction va permettre de trouver l'effet d'un item que le combattant ou le monstre récupère
 def apply_effect(item, perso):
     nom = item["nom"].lower()
     effet = item["effets"]

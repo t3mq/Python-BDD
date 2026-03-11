@@ -11,17 +11,7 @@ characters = list(collection_personnages.find())
 personnages = characters
 selection = 0
 
-def choice(min, max, message):
-    while True:
-        try:
-            nombre = int(input(message))
-            if min <= nombre <= max:
-                return nombre
-            else:
-                print(f"Veuillez entrer un nombre entre {min} et {max}.")
-        except ValueError:
-            print("Entrée invalide. Veuillez entrer un nombre.")
-
+# Ici ça nous permet de choisir des personnages à l'aide de notre selector (menu) (aide IA / stackoverflow)
 def select_player(player):
     equipe = []
     disponibles = [dict(p) for p in personnages]
@@ -32,12 +22,13 @@ def select_player(player):
             equipe_str = ", ".join(p['nom'] for p in equipe) if equipe else ""
             print(f"Équipe : {equipe_str}")
             print(f"\nChoisis ton personnage {slot + 1}/3")
-            for i, p in enumerate(disponibles):
+            for i, p in enumerate(disponibles): # Boucle qui permet d'affichier les personnages avec leur stats
                 stats = f"{p['nom']} | ATK : {p['atk']}  DEF: {p['def']}  PV: {p['pv']}"
                 if i == selection:
                     print(Fore.GREEN + "> " + stats + Style.RESET_ALL)
                 else:
                     print(Style.RESET_ALL + "  " + stats)
+
             key = get_key()
 
             if key == "\x1b[A":   # flèche du haut
@@ -62,16 +53,16 @@ def select_player(player):
 def leaderboard():
     os.system("clear")
     print("Tableau des scores :\n")
-    players = list(collection_player.find().sort("score", -1).limit(3))
+    players = list(collection_player.find().sort("score", -1).limit(3)) # On liste la collection player de mongodb et on filtre avec les score avec une limite de 3 profiles
     if not players:
         print("Aucun score enregistré pour le moment.")
         return
-    colors = [Fore.YELLOW, "\033[38;5;208m", Fore.RED]
+    colors = [Fore.YELLOW, "\033[38;5;208m", Fore.RED] 
     for i, player in enumerate(players):
         color = colors[i] if i < len(colors) else Style.RESET_ALL
         print(f"{color}{i + 1}. {player['nom']} - Score : {player['score']} vagues survécues{Style.RESET_ALL}")
 
-
+# On sauvegarde le pseudo de l'utilisateur avec un score de 0
 def save_player():
     while True:
         player = input("Veuillez saisir un pseudo : ")
@@ -98,6 +89,7 @@ def get_key():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
+# Ici on récupère les items dans la collection items pour ensuite utilise random pour nous permettre de générer un nombre entre 0 et 1 pour déterminer le pourcentage du taux de drop
 def open_box(items):
     items = list(collection_items.find())
     r = random.random()
