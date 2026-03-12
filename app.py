@@ -5,7 +5,9 @@ from colorama import Fore, Style
 
 import os
 
-# /!\ Poser la question comment ça marche réellement car j'ai pas trop compris cette partie
+"""
+
+"""
 MENU_ITEMS = [
     ("Lancer le jeu",                 start_game),
     ("Afficher le tableau des scores", leaderboard),

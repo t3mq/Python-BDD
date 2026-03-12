@@ -20,7 +20,7 @@ On récupère tous les monstres disponibles
 On initialise la vague (1)
 On initialise l'index du combattant à 0
 Tant que le jeu n'est aps terminé :
-    - Afficher "Vague X"
+    - Afficher "vague X"
     - Sélectionner 3 monstres pour cette vague avec la fonction choisir_monstres()
     - Pour chaque monstre :
         1. Afficher le monstre (afficher_monstre)
@@ -34,7 +34,7 @@ def start(player, squad):
     fighter_index = 0
 
     while True:
-        print(f"\n----VAGUE {vague}----")
+        print(f"\n---- VAGUE {vague} ----")
         enemies = choisir_monstres(monsters, vague)
 
         for enemy in enemies:
@@ -82,7 +82,7 @@ Pour chaque membre de l'équipe (à partir de start_index):
             - On affiche que le personnage a gagné
             - On lance la fonction drop_item()
             - On retourne la victoire et index du prochain combattant
--Si aucun personnage ne gagne, on retourne "défaite" et index le prochain combattant
+Si aucun personnage ne gagne, on retourne "défaite" et index le prochain combattant
 """
 def tour_combat(squad, enemy, player, start_index=0):
     n = len(squad)
@@ -180,6 +180,7 @@ def save_pv(player, perso):
         {"nom": player, "equipe._id": perso["_id"]},
         {"$set": {"equipe.$.pv" : perso["pv"]}}
     )
+
 """
 On récupère le nom et l'effet de l'objet
 Selon le type d'objet:
@@ -189,7 +190,6 @@ Selon le type d'objet:
     etc...
     - Rien -> on affiche que la boîte est vide
 """
-
 def apply_effect(item, perso):
     nom = item["nom"].lower()
     effet = item["effets"]
@@ -220,7 +220,6 @@ bonus_mixte -> augmente les PV + l'attaque à moitié
 malus_pv -> retire des PV au personnage
 bonus_chance -> augmente PV, +20 ATK, +20 DEF
 """
-
 def heal(perso, effet):
     perso["pv"] += effet
     print(f"{perso['nom']} récupère {effet}")

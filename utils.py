@@ -117,7 +117,7 @@ On récupère les 3 joueurs avec le meilleur score avec collection_player
 Si aucun joueur -> on affiche "Aucun score enregistré"
 Sinon, pour chaque joueur :
     - Choisir une couleur selon le rang
-    - On affiche le rang, le nom et le score en vagues
+    - On affiche le rang, le nom et le score en vague
 """
 def leaderboard():
     os.system("clear")
@@ -158,12 +158,7 @@ def save_player():
         print("Le pseudo doit contenir entre 3-20 caractères.")
 
 """
-On récupère tous les items disponibles dans la base de données
-On tire un nombre aléatoire r entre 0 et 1
-On parcour chaque item :
-    - On ajoute la probabilité de drop à un total cumulatif
-    - Si r <= total on retourne cet item
-Si aucun item sélectionné -> on retourne None
+
 """
 def get_key():
     fd = sys.stdin.fileno()
@@ -183,6 +178,14 @@ def get_key():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
+"""
+On récupère tous les items disponibles dans la base de données
+On tire un nombre aléatoire r entre 0 et 1
+On parcour chaque item :
+    - On ajoute la probabilité de drop à un total cumulatif
+    - Si r <= total on retourne cet item
+Si aucun item sélectionné -> on retourne None
+"""
 def open_box(items):
     items = list(collection_items.find())
 
