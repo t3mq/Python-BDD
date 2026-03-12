@@ -134,8 +134,8 @@ def leaderboard():
     for i, player in enumerate(players):
         color = colors[i] if i < len(colors) else Style.RESET_ALL
         print(
-            f"{color}{i + 1}. {player['nom']} -"
-            f"Score : {player['score']} vagues survécues {Style.RESET_ALL}"
+            f"{color}{i + 1}. {player['nom']} |"
+            f" Score : {player['score']} vagues survécues {Style.RESET_ALL}"
         )
 
 """
