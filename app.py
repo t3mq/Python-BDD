@@ -12,6 +12,11 @@ MENU_ITEMS = [
     ("Quitter",                        exit),
 ]
 
+"""
+"Lancer le jeu" -> on appele la fonction start_game()
+"Afficher le tableau des scores" -> appele la fonction leaderboard()
+"Quitter" -> on quitte le programme avec exit()
+"""
 def main():
     selection = 0
     while True:
@@ -61,4 +66,19 @@ def main():
 
 if __name__ == "__main__":
     init_db()
+    """
+    On initialise la selection à 0 (première option du menu)
+    Tant que le programme tourne :
+        - On efface l'écran
+        - On affiche l'ASCII ART
+        - Pour chaque option du menu :
+            1. Si c'est l'option sélectionné -> on l'affiche en vert
+            2. Sinon -> on l'affiche normalement
+        - On lit la touche du joueur avec get_key()
+        - Si flèche du haut -> selection = selection -1
+        - Si flèche bas -> selection = selection + 1
+        - Si touche entrée :
+            1. On exécute la fonction correspondante à l'option sélectionnée
+            2. Demander au joueur d'appuyez sur Entrée pour revenir au menu
+    """
     main()
